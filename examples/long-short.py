@@ -1,4 +1,5 @@
 import os
+import sys
 import datetime
 import threading
 import pandas as pd
@@ -77,6 +78,8 @@ class LongShort:
         # Run script again after market close for next trading day.
         print("Sleeping until market close (15 minutes).")
         time.sleep(60 * 15)
+        # quit program after market close
+        sys.exit('Market closed.')
       else:
         # Rebalance the portfolio.
         tRebalance = threading.Thread(target=self.rebalance)
