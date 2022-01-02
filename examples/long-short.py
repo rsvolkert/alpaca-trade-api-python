@@ -1,6 +1,7 @@
 import os
 import datetime
 import threading
+import pandas as pd
 
 import alpaca_trade_api as tradeapi
 import time
