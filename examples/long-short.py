@@ -1,3 +1,4 @@
+import os
 import datetime
 import threading
 
@@ -5,8 +6,8 @@ import alpaca_trade_api as tradeapi
 import time
 from alpaca_trade_api.rest import TimeFrame
 
-API_KEY = "YOUR_API_KEY_HERE"
-API_SECRET = "YOUR_API_SECRET_HERE"
+API_KEY = os.getenv('PAPER_KEY')
+API_SECRET = os.getenv('PAPER_SECRET')
 APCA_API_BASE_URL = "https://paper-api.alpaca.markets"
 
 
