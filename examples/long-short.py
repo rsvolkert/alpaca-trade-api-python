@@ -19,7 +19,7 @@ class LongShort:
 
     stockUniverse = ['DOMO', 'TLRY', 'SQ', 'MRO', 'AAPL', 'GM', 'SNAP', 'SHOP',
                      'SPLK', 'BA', 'AMZN', 'SUI', 'SUN', 'TSLA', 'CGC', 'SPWR',
-                     'NIO', 'CAT', 'MSFT', 'PANW', 'OKTA', 'TWTR', 'TM', 'RTN',
+                     'NIO', 'CAT', 'MSFT', 'PANW', 'OKTA', 'TWTR', 'TM',
                      'ATVI', 'GS', 'BAC', 'MS', 'TWLO', 'QCOM', ]
     # Format the allStocks variable for use in the class.
     self.allStocks = []
@@ -284,7 +284,7 @@ class LongShort:
                                   pd.Timestamp('now').date(), limit=1,
                                   adjustment='raw')
 
-      totalPrice += bars[stock][0].c
+      totalPrice += bars[0].c
     resp.append(totalPrice)
 
   # Submit a batch order that returns completed and uncompleted orders.
@@ -327,7 +327,7 @@ class LongShort:
                                   pd.Timestamp('now').date(),
                                   pd.Timestamp('now').date(), limit=length,
                                   adjustment='raw')
-      self.allStocks[i][1] = (bars[stock[0]][len(bars[stock[0]]) - 1].c - bars[stock[0]][0].o) / bars[stock[0]][0].o
+      self.allStocks[i][1] = (bars[len(bars) - 1].c - bars[0].o) / bars[0].o
 
   # Mechanism used to rank the stocks, the basis of the Long-Short Equity Strategy.
   def rank(self):
