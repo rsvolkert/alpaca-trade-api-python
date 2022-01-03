@@ -69,7 +69,7 @@ class LongShort:
             orderSide = 'sell'
           else:
             orderSide = 'buy'
-          qty = abs(int(float(position.qty)))
+          qty = abs(float(position.qty))
           respSO = []
           tSubmitOrder = threading.Thread(target=self.submitOrder(qty, position.symbol, orderSide, respSO))
           tSubmitOrder.start()
@@ -125,7 +125,7 @@ class LongShort:
           else:
             side = "buy"
           respSO = []
-          tSO = threading.Thread(target=self.submitOrder, args=[abs(int(float(position.qty))), position.symbol, side, respSO])
+          tSO = threading.Thread(target=self.submitOrder, args=[abs(float(position.qty)), position.symbol, side, respSO])
           tSO.start()
           tSO.join()
         else:
@@ -134,16 +134,16 @@ class LongShort:
             # Position changed from long to short.  Clear long position to prepare for short position.
             side = "sell"
             respSO = []
-            tSO = threading.Thread(target=self.submitOrder, args=[int(float(position.qty)), position.symbol, side, respSO])
+            tSO = threading.Thread(target=self.submitOrder, args=[float(position.qty), position.symbol, side, respSO])
             tSO.start()
             tSO.join()
           else:
-            if(abs(int(float(position.qty))) == self.qShort):
+            if(abs(float(position.qty)) == self.qShort):
               # Position is where we want it.  Pass for now.
               pass
             else:
               # Need to adjust position amount
-              diff = abs(int(float(position.qty))) - self.qShort
+              diff = abs(float(position.qty)) - self.qShort
               if(diff > 0):
                 # Too many short positions.  Buy some back to rebalance.
                 side = "buy"
@@ -161,16 +161,16 @@ class LongShort:
         if(position.side == "short"):
           # Position changed from short to long.  Clear short position to prepare for long position.
           respSO = []
-          tSO = threading.Thread(target=self.submitOrder, args=[abs(int(float(position.qty))), position.symbol, "buy", respSO])
+          tSO = threading.Thread(target=self.submitOrder, args=[abs(float(position.qty)), position.symbol, "buy", respSO])
           tSO.start()
           tSO.join()
         else:
-          if(int(float(position.qty)) == self.qLong):
+          if(float(position.qty) == self.qLong):
             # Position is where we want it.  Pass for now.
             pass
           else:
             # Need to adjust position amount.
-            diff = abs(int(float(position.qty))) - self.qLong
+            diff = abs(float(position.qty)) - self.qLong
             if(diff > 0):
               # Too many long positions.  Sell some to rebalance.
               side = "sell"
@@ -197,7 +197,7 @@ class LongShort:
       tGetTPLong.start()
       tGetTPLong.join()
       if (respGetTPLong[0] > 0):
-        self.adjustedQLong = self.longAmount // respGetTPLong[0]
+        self.adjustedQLong = round(self.longAmount / respGetTPLong[0], 2)
       else:
         self.adjustedQLong = -1
     else:
@@ -215,7 +215,7 @@ class LongShort:
       tGetTPShort.start()
       tGetTPShort.join()
       if(respGetTPShort[0] > 0):
-        self.adjustedQShort = self.shortAmount // respGetTPShort[0]
+        self.adjustedQShort = round(self.shortAmount / respGetTPShort[0], 2)
       else:
         self.adjustedQShort = -1
     else:
@@ -223,7 +223,7 @@ class LongShort:
 
     # Reorder stocks that didn't throw an error so that the equity quota is reached.
     if(self.adjustedQLong > -1):
-      self.qLong = int(self.adjustedQLong - self.qLong)
+      self.qLong = self.adjustedQLong - self.qLong
       for stock in respSendBOLong[0][0]:
         respResendBOLong = []
         tResendBOLong = threading.Thread(target=self.submitOrder, args=[self.qLong, stock, "buy", respResendBOLong])
@@ -231,7 +231,7 @@ class LongShort:
         tResendBOLong.join()
 
     if(self.adjustedQShort > -1):
-      self.qShort = int(self.adjustedQShort - self.qShort)
+      self.qShort = self.adjustedQShort - self.qShort
       for stock in respSendBOShort[0][0]:
         respResendBOShort = []
         tResendBOShort = threading.Thread(target=self.submitOrder, args=[self.qShort, stock, "sell", respResendBOShort])
@@ -272,8 +272,8 @@ class LongShort:
     tGetTPShort.start()
     tGetTPShort.join()
 
-    self.qLong = int(self.longAmount // respGetTPLong[0])
-    self.qShort = int(self.shortAmount // respGetTPShort[0])
+    self.qLong = round(self.longAmount / respGetTPLong[0], 2)
+    self.qShort = round(self.shortAmount / respGetTPShort[0], 2)
 
   # Get the total price of the array of input stocks.
   def getTotalPrice(self, stocks, resp):
@@ -312,8 +312,8 @@ class LongShort:
         self.alpaca.submit_order(stock, qty, side, "market", "day")
         print("Market order of | " + str(qty) + " " + stock + " " + side + " | completed.")
         resp.append(True)
-      except:
-        print("Order of | " + str(qty) + " " + stock + " " + side + " | did not go through.")
+      except tradeapi.rest.APIError as e:
+        print("Order of | " + str(qty) + " " + stock + " " + side + " | did not go through.    Error: " + e._error['message'])
         resp.append(False)
     else:
       print("Quantity is 0, order of | " + str(qty) + " " + stock + " " + side + " | not completed.")
