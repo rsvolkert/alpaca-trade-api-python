@@ -50,6 +50,19 @@ class LongShort:
     tAMO.join()
     print("Market opened.")
 
+    # close positions from the previous day
+    positions = self.alpaca.list_positions()
+    for position in positions:
+      if (position.side == 'long'):
+        orderSide = 'sell'
+      else:
+        orderSide = 'buy'
+      qty = abs(float(position.qty))
+      respSO = []
+      tSubmitOrder = threading.Thread(target=self.submitOrder(qty, position.symbol, orderSide, respSO))
+      tSubmitOrder.start()
+      tSubmitOrder.join()
+
     # Rebalance the portfolio every minute, making necessary trades.
     while True:
 
@@ -62,18 +75,6 @@ class LongShort:
       if(self.timeToClose < (60 * 15)):
         # Close all positions when 15 minutes til market close.
         print("Market closing soon.  Closing positions.")
-
-        positions = self.alpaca.list_positions()
-        for position in positions:
-          if(position.side == 'long'):
-            orderSide = 'sell'
-          else:
-            orderSide = 'buy'
-          qty = abs(float(position.qty))
-          respSO = []
-          tSubmitOrder = threading.Thread(target=self.submitOrder(qty, position.symbol, orderSide, respSO))
-          tSubmitOrder.start()
-          tSubmitOrder.join()
 
         # Run script again after market close for next trading day.
         print("Sleeping until market close (15 minutes).")
