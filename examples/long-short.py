@@ -260,7 +260,8 @@ class LongShort:
     # Determine amount to long/short based on total stock price of each bucket.
     equity = int(float(self.alpaca.get_account().equity))
 
-    self.shortAmount = equity * 0.30
+    # TODO: set back to 30% once equity reaches $2,000
+    self.shortAmount = equity * 0
     self.longAmount = equity - self.shortAmount
 
     respGetTPLong = []
