@@ -38,6 +38,9 @@ async def get_historic_data_base(symbols, data_type: DataType, start, end,
     :param timeframe:
     :return:
     """
+    rest = AsyncRest(os.getenv('PAPER_KEY'),
+                     os.getenv('PAPER_SECRET'))
+
     major = sys.version_info.major
     minor = sys.version_info.minor
     if major < 3 or minor < 6:
@@ -53,26 +56,26 @@ async def get_historic_data_base(symbols, data_type: DataType, start, end,
         for symbol in symbols[i:i+step_size]:
             args = [symbol, start, end, timeframe.value] if timeframe else \
                 [symbol, start, end]
-            tasks.append(get_data_method(data_type)(*args))
+            tasks.append(rest.get_bars_async(*args))
 
         if minor >= 8:
             results.extend(await asyncio.gather(*tasks, return_exceptions=True))
         else:
             results.extend(await gather_with_concurrency(500, *tasks))
 
-    bad_requests = 0
-    for response in results:
-        if isinstance(response, Exception):
-            print(f"Got an error: {response}")
-        elif not len(response[1]):
-            bad_requests += 1
+    # bad_requests = 0
+    # for response in results:
+        # if isinstance(response, Exception):
+        #     print(f"Got an error: {response}")
+        # if not len(response[1]):
+        #     bad_requests += 1
 
-    print(f"Total of {len(results)} {data_type}, and {bad_requests} "
-          f"empty responses.")
+    print(f"Total of {len(results)} {data_type}")
+    return dict(zip(symbols, results))
 
 
 async def get_historic_bars(symbols, start, end, timeframe: TimeFrame):
-    await get_historic_data_base(symbols, DataType.Bars, start, end, timeframe)
+    return await get_historic_data_base(symbols, DataType.Bars, start, end, timeframe)
 
 
 async def get_historic_trades(symbols, start, end, timeframe: TimeFrame):
@@ -83,18 +86,18 @@ async def get_historic_quotes(symbols, start, end, timeframe: TimeFrame):
     await get_historic_data_base(symbols, DataType.Quotes, start, end)
 
 
-async def main(symbols):
-    start = pd.Timestamp('2021-05-01', tz=NY).date().isoformat()
-    end = pd.Timestamp('2021-08-30', tz=NY).date().isoformat()
+async def main(symbols, start, end):
+    # start = pd.Timestamp('2021-05-01', tz=NY).date().isoformat()
+    # end = pd.Timestamp('2021-08-30', tz=NY).date().isoformat()
     timeframe: TimeFrame = TimeFrame.Day
-    await get_historic_bars(symbols, start, end, timeframe)
-    await get_historic_trades(symbols, start, end, timeframe)
-    await get_historic_quotes(symbols, start, end, timeframe)
+    return await get_historic_bars(symbols, start, end, timeframe)
+    # await get_historic_trades(symbols, start, end, timeframe)
+    # await get_historic_quotes(symbols, start, end, timeframe)
 
 
 if __name__ == '__main__':
-    api_key_id = os.environ.get('APCA_API_KEY_ID')
-    api_secret = os.environ.get('APCA_API_SECRET_KEY')
+    api_key_id = os.environ.get('PAPER_KEY')
+    api_secret = os.environ.get('PAPER_SECRET')
     base_url = "https://paper-api.alpaca.markets"
     feed = "iex"  # change to "sip" if you have a paid account
 
@@ -106,8 +109,7 @@ if __name__ == '__main__':
                         base_url=URL(base_url))
 
     start_time = time.time()
-    loop = asyncio.get_event_loop()
     symbols = [el.symbol for el in api.list_assets(status='active')]
     symbols = symbols[:200]
-    loop.run_until_complete(main(symbols))
+    results = asyncio.run(main(symbols))
     print(f"took {time.time() - start_time} sec")

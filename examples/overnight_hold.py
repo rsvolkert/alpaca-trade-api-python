@@ -2,8 +2,10 @@ import alpaca_trade_api as tradeapi
 from alpaca_trade_api.rest import TimeFrame
 import pandas as pd
 import statistics
+import os
 import sys
 import time
+import threading
 
 from datetime import datetime, timedelta
 from pytz import timezone
@@ -43,24 +45,20 @@ def get_ratings(api, algo_time):
         # note: soon get_barset() will be deprecated and you need to use the
         #       commented out code instead
 
-        # barset = {}
-        #     bars = api.get_bars(symbol,
-        #                         TimeFrame.Day,
-        #                         start_time,
-        #                         formatted_time,
-        #                         limit=window_size,
-        #                         adjustment='raw')
-        #     barset[symbol] = bars
-
-        barset = api.get_barset(
-            symbols=symbol_batch,
-            timeframe='day',
-            limit=window_size,
-            end=formatted_time
-        )
+        # barset = api.get_barset(
+        #     symbols=symbol_batch,
+        #     timeframe='day',
+        #     limit=window_size,
+        #     end=formatted_time
+        # )
         algo_time = pd.Timestamp('now', tz=timezone('EST'))
         for symbol in symbol_batch:
-            bars = barset[symbol]
+            bars = api.get_bars(symbol,
+                                TimeFrame.Day,
+                                start_time,
+                                formatted_time,
+                                limit=window_size,
+                                adjustment='raw')
             if len(bars) == window_size:
                 # Make sure we aren't missing the most recent data.
                 latest_bar = bars[-1].t.to_pydatetime().astimezone(
@@ -91,7 +89,7 @@ def get_ratings(api, algo_time):
                             'rating': price_change/bars[0].c * volume_factor,
                             'price': price
                         }, ignore_index=True)
-        index += 200
+        index += batch_size
     ratings = ratings.sort_values('rating', ascending=False)
     ratings = ratings.reset_index(drop=True)
     return ratings[:stocks_to_hold]
@@ -173,25 +171,21 @@ def get_value_of_assets(api, shares_bought, on_date):
     # note: soon get_barset() will be deprecated and you need to use the
     #       commented out code instead
 
-    # barset = {}
-    # for symbol in shares_bought.keys():
-    #     bars = api.get_bars(symbol,
-    #                         TimeFrame.Day,
-    #                         on_date.date(),
-    #                         on_date.date(),
-    #                         limit=1,
-    #                         adjustment='raw')
-    #     barset[symbol] = bars
-
-    barset = api.get_barset(
-        symbols=shares_bought.keys(),
-        timeframe='day',
-        limit=1,
-        end=formatted_date
-    )
+    # barset = api.get_barset(
+    #     symbols=shares_bought.keys(),
+    #     timeframe='day',
+    #     limit=1,
+    #     end=formatted_date
+    # )
 
     for symbol in shares_bought:
-        total_value += shares_bought[symbol] * barset[symbol][0].o
+        bars = api.get_bars(symbol,
+                            TimeFrame.Day,
+                            on_date.date(),
+                            on_date.date(),
+                            limit=1,
+                            adjustment='raw')
+        total_value += shares_bought[symbol] * bars[0].o
     return total_value
 
 
@@ -267,7 +261,10 @@ def run_live(api):
 
 
 if __name__ == '__main__':
-    api = tradeapi.REST()
+    API_KEY = os.getenv('ALPACA_KEY')
+    API_SECRET = os.getenv('ALPACA_SECRET')
+    APCA_API_BASE_URL = "https://api.alpaca.markets"
+    api = tradeapi.REST(API_KEY, API_SECRET, APCA_API_BASE_URL)
 
     if len(sys.argv) < 2:
         print('Error: please specify a command; either "run" or "backtest <cash balance> <number of days to test>".')
